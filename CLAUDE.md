@@ -11,13 +11,16 @@ Gladys through
 [`@gladysassistant/integration-sdk`](https://github.com/GladysAssistant/integration-sdk-js),
 its only runtime dependency. It started from the official JavaScript template.
 
+This one follows the **Steam** status of chosen accounts through the official
+Steam Web API (read-only, `transports: ["cloud"]`).
+
 ## Commands
 
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/app.test.js              # one file
+node --test --test-name-pattern "session" # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -31,16 +34,22 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          SDK wiring only: createApp, register, connect
+src/app.js                        the integration: refresh loop, events, handlers (takes the Gladys client)
+src/steam/client.js               Steam Web API client (4 read-only methods, typed errors, key scrubbed)
+src/steam/ids.js                  SteamID64 / profile URL / custom name / STEAM_0 / [U:1:n] parsing
+src/steam/model.js                what is kept of a GetPlayerSummaries entry
+src/devices.js                    one device per account: features, states
+src/tracker.js                    gaming sessions and scene events, pure functions
+src/store.js                      /data/steam-state.json (resolved names, sessions)
+src/widgets.js                    "Steam accounts" widget content (pure builder)
+src/i18n.js                       every text the container produces, in en/fr/de/es
+src/issues.js                     repeated failures logged once
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+scripts/probe.mjs                 read-only probe of the real API (fake key by default)
+gladys-assistant-integration.json manifest: name, config_schema, actions, triggers, widget...
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (same sections)
+test/                             node --test, against the SDK's fake Gladys and test/helpers/fakeSteam.js
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +79,9 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German and Spanish: action
+  messages, manifest texts, feature names, widget contents, and
+  `docs/{en,fr,de,es}.md`, kept in sync (`test/i18n.test.js`).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +243,31 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## Steam (cette intégration)
+
+- **API** : `api.steampowered.com`, clé gratuite (steamcommunity.com/dev/apikey, compte non limité :
+  5 USD dépensés). `ISteamUser/GetPlayerSummaries/v2` (100 SteamID par requête, `response.players` est un
+  **tableau** ; la v1 de la bibliothèque Python de HA l'imbrique sous `players.player`),
+  `ISteamUser/ResolveVanityURL/v1` (`success` 1 ou 42 « No match »), `IPlayerService/GetSteamLevel/v1`,
+  `IPlayerService/GetRecentlyPlayedGames/v1`. Quota : 100 000 appels par jour. Clé refusée : 401/403 avec une
+  page HTML, pas du JSON.
+- **La clé voyage dans l'URL** (`?key=`) : ne jamais logger l'URL ni un message d'erreur réseau brut ; le client
+  construit ses messages et les nettoie de la clé. Un test le vérifie à tous les niveaux de journal.
+- **Profil privé** : `personastate` reste visible, mais `gameid`/`gameextrainfo` disparaissent, et
+  `GetSteamLevel`/`GetRecentlyPlayedGames` répondent `{ "response": {} }` (≠ `total_count: 0` d'un profil public
+  sans jeu récent). `communityvisibilitystate` vaut 3 pour un profil public.
+- **Identifiant** : l'`external_id` est le SteamID64, jamais l'identifiant personnalisé (modifiable, réattribuable).
+  Un nom personnalisé est résolu à chaque démarrage, la dernière résolution servant de repli dans `/data` quand
+  Steam ne répond pas.
+- **Déclencheurs** : les filtres du cœur ne font qu'égalité, d'où « Joue depuis plus de… » avec un `select` de
+  seuils (15 min à 4 h) et un événement par seuil franchi et par session. Une session survit à un changement de
+  jeu, à une pause de moins de 10 minutes et à une panne de Steam pendant la partie (une heure au plus sans
+  observation) ; elle est persistée dans `/data/steam-state.json`. Le premier relevé d'un compte sans état
+  persisté ne déclenche rien.
+- Tous les comptes configurés sont lus à chaque cycle (une seule requête, pour le widget et les déclencheurs),
+  mais le niveau et le temps de jeu (2 requêtes par compte, toutes les 30 min) seulement pour les appareils ajoutés.
+- `publishChangedStates({ heartbeat })` date son heartbeat avec `Date.now()` : un test qui avance une horloge
+  injectée doit aussi simuler `Date` (`t.mock.timers.enable({ apis: ['Date'] })`).
+- La session du conteneur n'a pas accès à `api.steampowered.com` (proxy 403) : `scripts/probe.mjs` est à lancer
+  ailleurs. Le dépôt `gladys-xbox` cité comme cousin n'a pas été trouvé publiquement.

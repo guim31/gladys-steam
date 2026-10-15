@@ -30,6 +30,19 @@ Gladys before reporting a problem.
 
 In scope: the code of this repository and the Docker image it publishes.
 
+What the integration handles:
+
+- **Secrets**: the Steam Web API key lives in the Gladys configuration (a
+  `secret` field, never sent back to the browser). The integration sends it
+  only to `https://api.steampowered.com`, in the query string as Steam
+  requires, and never writes it to the logs or to `/data`: error messages are
+  built without the request URL and scrubbed of the key.
+- **`/data`**: `steam-state.json` holds the custom profile names already
+  resolved to a SteamID64 and, per account, the current gaming session (game,
+  start time, thresholds already fired). No key, no password.
+- **Network**: outgoing HTTPS to `api.steampowered.com` only. The integration
+  opens no port and listens to nothing; it is read-only on Steam.
+
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+and Steam and its Web API (report those to Valve).

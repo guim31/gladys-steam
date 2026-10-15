@@ -1,67 +1,97 @@
-# Template de démonstration
+# Steam
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+## Présentation
 
-## Ce que vous obtenez
+Cette intégration suit le **statut Steam** des comptes que vous choisissez (le vôtre, celui de vos enfants, de vos amis) : en ligne ou non, le jeu en cours et depuis combien de temps, le temps de jeu des deux dernières semaines, le niveau Steam et la dernière déconnexion. Chaque compte devient un appareil Gladys, un widget du tableau de bord les montre tous d'un coup d'œil, et des déclencheurs de scène permettent à Gladys de réagir quand quelqu'un commence ou arrête de jouer, se connecte, ou joue depuis trop longtemps (contrôle parental).
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+Elle lit l'**API Web officielle de Steam** (`api.steampowered.com`) avec une clé d'API gratuite, en lecture seule : rien n'est jamais modifié sur Steam. Non affiliée à Valve : Steam est une marque de Valve Corporation.
+
+Développée sans compte Steam réel sous la main : vos retours sont les bienvenus.
+
+## Prérequis
+
+- Gladys Assistant 5.1.0 ou plus récent.
+- Une **clé d'API Web Steam**, gratuite : connectez-vous sur [steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey), saisissez un nom de domaine quelconque (par exemple `localhost`) et copiez la clé de 32 caractères. Steam ne donne de clé qu'aux comptes qui ont dépensé au moins 5 USD dans la boutique.
+- Les comptes à suivre. Le **jeu en cours** n'est visible que si le profil est **public** et que ses **détails de jeu** le sont aussi (Steam : Modifier le profil, Paramètres de confidentialité). Un profil privé montre quand même son statut (en ligne, absent…), jamais son jeu.
 
 ## Configuration
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+Dans Gladys, **Intégrations**, **Steam**, **Configuration** :
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+| Champ                              | Contenu                                                                                                                                                                                                                                                              |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Clé d'API Steam                    | La clé copiée depuis steamcommunity.com/dev/apikey. Conservée dans la configuration de Gladys, jamais écrite dans les journaux.                                                                                                                                      |
+| Comptes à suivre                   | Jusqu'à 20, séparés par des virgules : un SteamID64 (`76561198…`, affiché sur store.steampowered.com/account), une URL de profil (`https://steamcommunity.com/id/nom/` ou `/profiles/7656…`), un identifiant personnalisé, ou les formes `STEAM_0:1:…` et `[U:1:…]`. |
+| Intervalle de rafraîchissement     | 30 secondes, 1, 2 ou 5 minutes (1 minute par défaut).                                                                                                                                                                                                                |
+| Langue des noms de fonctionnalités | Anglais, français (par défaut), allemand ou espagnol : les noms des fonctionnalités à la création, et les textes envoyés aux scènes.                                                                                                                                 |
 
-## Actions
+Ouvrez ensuite l'onglet **Découverte** et ajoutez comme appareils les comptes voulus. Le bouton **Vérifier les comptes**, sous la configuration, résout chaque saisie et indique si son profil est public.
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+## Appareils
 
-## Scènes
+Un appareil par compte, nommé « Steam » suivi du nom Steam. Toutes les fonctionnalités sont en lecture seule.
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+| Fonctionnalité            | Type            | Contenu                                                                                             |
+| ------------------------- | --------------- | --------------------------------------------------------------------------------------------------- |
+| Statut                    | Texte           | Hors ligne, En ligne, Occupé, Absent, En veille, Cherche à échanger, Cherche à jouer.               |
+| En ligne                  | Binaire         | 1 quand le compte n'est pas hors ligne.                                                             |
+| En jeu                    | Binaire         | 1 pendant qu'un jeu tourne (profils publics seulement).                                             |
+| Jeu en cours              | Texte           | Le nom du jeu, « Aucun » sinon.                                                                     |
+| Session de jeu            | Durée (minutes) | Durée de la session en cours, 0 hors jeu. Voir « Joue depuis plus de… » pour ce qu'est une session. |
+| Temps de jeu (2 semaines) | Durée (heures)  | Temps de jeu total des deux dernières semaines, lu toutes les 30 minutes.                           |
+| Niveau Steam              | Compteur        | Le niveau Steam, lu toutes les 30 minutes.                                                          |
+| Dernière déconnexion      | Texte           | Date et heure de la dernière déconnexion, dans le fuseau horaire de Gladys.                         |
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+Les fonctionnalités binaires et de durée s'utilisent dans les conditions de scène de Gladys (« En jeu » égal à 1, « Session de jeu » supérieure à 60).
 
-## Tableau de bord
+## Widget
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+**Comptes Steam** : deux tuiles (nombre de comptes en jeu, comptes en ligne) et une ligne par compte (dix au plus) : le jeu et la durée de session pendant une partie, le statut sinon, avec une couleur (vert en jeu, bleu en ligne, orange occupé ou absent, gris hors ligne). Une note nomme les profils privés. Le widget montre le dernier rafraîchissement : il n'interroge jamais Steam lui-même.
+
+## Déclencheurs de scène
+
+Chaque déclencheur peut être limité à un compte (vide : n'importe quel compte) et transmet le nom du compte aux actions de la scène.
+
+| Déclencheur          | Quand                                                                                                                                                                                                                                                                                                                      | Informations transmises               |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| Commence à jouer     | Un jeu démarre, ou le joueur passe à un autre. Filtre facultatif : le nom exact du jeu.                                                                                                                                                                                                                                    | Nom du compte, jeu, identifiant Steam |
+| Arrête de jouer      | Un jeu se termine, ou le joueur passe à un autre. Filtre facultatif : le jeu.                                                                                                                                                                                                                                              | Nom du compte, jeu, minutes jouées    |
+| Joue depuis plus de… | La **session de jeu** atteint la durée choisie (15, 30, 45 minutes, 1, 1,5, 2, 3 ou 4 heures). Une session est un temps de jeu continu, quel que soit le jeu : changer de jeu la prolonge, une pause de moins de 10 minutes aussi. Il se déclenche une fois par session et par durée, même après un redémarrage de Gladys. | Nom du compte, jeu, minutes atteintes |
+| Se connecte          | Le compte passe de hors ligne à n'importe quel autre statut.                                                                                                                                                                                                                                                               | Nom du compte, statut                 |
+
+Le premier rafraîchissement après un démarrage de l'intégration ne fait que relever la situation : il ne déclenche rien.
+
+## Action de scène
+
+**Lire un compte Steam** donne aux étapes suivantes de la scène le statut, en ligne (oui/non), en jeu (oui/non), le jeu en cours et la durée de session d'un compte. Elle lit le dernier rafraîchissement, sans interroger Steam : associez-la à « Continuer seulement si » pour n'agir que lorsque le compte joue.
+
+## Action de configuration
+
+**Vérifier les comptes** résout chaque saisie du champ des comptes et répond, pour chacune, le nom Steam et le SteamID64 et si le profil est public, ou pourquoi la saisie est introuvable.
+
+## Exemples de scènes
+
+- **Heure du coucher** : chaque jour d'école à 21 h, « Lire un compte Steam » sur le compte de votre enfant, « Continuer seulement si » en jeu est vrai, puis annoncer « C'est l'heure d'arrêter [jeu] » sur l'enceinte de la maison.
+- **Temps d'écran** : déclencheur « Joue depuis plus de… 2 heures » sur le compte de votre enfant, puis vous envoyer un message « Léo joue depuis 2 heures ([jeu]) » et baisser la lumière de la pièce.
+- **Soirée jeu** : déclencheur « Commence à jouer » sur votre compte, puis passer le salon en ambiance « Jeu » et couper les notifications.
+
+## Rafraîchissement et quotas Steam
+
+L'intégration se rafraîchit d'elle-même à l'intervalle choisi (elle ne dépend pas du sondage de Gladys). Une seule requête lit tous les comptes à la fois ; le niveau et le temps de jeu sont lus toutes les 30 minutes, seulement pour les comptes ajoutés à Gladys. Avec l'intervalle par défaut et trois comptes ajoutés, cela fait environ 1 700 requêtes par jour, loin des **100 000 appels par jour** permis par les [conditions d'utilisation de l'API Web Steam](https://steamcommunity.com/dev/apiterms). Si Steam répond « trop de requêtes » (HTTP 429), l'intégration fait une pause de 5 minutes. Steam lui-même met à jour le statut avec un retard de quelques minutes au plus.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **« Steam a refusé la clé d'API »** dans l'écran de configuration : recopiez la clé depuis steamcommunity.com/dev/apikey (32 caractères, sans espace).
+- **Aucun jeu affiché alors que quelqu'un joue** : le profil, ou ses détails de jeu, ne sont pas publics. « Vérifier les comptes » le dit, le widget aussi.
+- **Un compte manque dans l'onglet Découverte** : vérifiez son orthographe avec « Vérifier les comptes » ; un identifiant personnalisé est celui qui suit `/id/` dans l'URL du profil, pas le nom affiché.
+- **Steam ne répond pas** : l'intégration garde les derniers états connus et réessaie à chaque intervalle ; l'écran de configuration l'indique.
+- **Plus de détails** : définissez la variable d'environnement `LOG_LEVEL=debug` sur le conteneur. Les journaux normaux ne gardent que les démarrages, les erreurs et les rétablissements.
+
+## Limites
+
+- Lecture seule : aucun message, aucun ami, aucun achat, rien ne change sur Steam.
+- Le jeu en cours et le temps de jeu exigent un profil public avec des détails de jeu publics : Steam les cache sinon, même à la clé du propriétaire du compte.
+- Le statut de Steam lui-même peut avoir quelques minutes de retard, et un compte « invisible » paraît hors ligne.
+- Un jeu lancé hors de Steam n'est pas vu ; un jeu non-Steam ajouté à la bibliothèque peut n'apparaître qu'avec son nom.
+- 20 comptes au plus ; le widget liste les dix premiers.
+- Développée sans compte Steam réel sous la main : vos retours sont les bienvenus sur le forum de Gladys.

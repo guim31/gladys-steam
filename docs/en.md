@@ -1,61 +1,97 @@
-# Demo Devices Template
+# Steam
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+## Overview
 
-## What you get
+This integration follows the **Steam status** of the accounts you choose (yours, your children's, your friends'): online or not, the game being played and for how long, the playtime of the last two weeks, the Steam level and the last logoff. Each account becomes a Gladys device, a dashboard widget shows them all at a glance, and scene triggers let Gladys react when someone starts or stops playing, comes online, or has been playing for too long (parental control).
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+It reads the **official Steam Web API** (`api.steampowered.com`) with a free API key, read-only: nothing is ever changed on Steam. Not affiliated with Valve: Steam is a trademark of Valve Corporation.
+
+Developed without a real Steam account at hand: feedback welcome.
+
+## Prerequisites
+
+- Gladys Assistant 5.1.0 or later.
+- A **Steam Web API key**, free: sign in on [steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey), enter any domain name (for example `localhost`) and copy the 32-character key. Steam only gives keys to accounts that have spent at least 5 USD in the store.
+- The accounts to follow. The **current game** is only visible when the profile is **public** and its **game details** are public too (Steam: Edit profile, Privacy settings). A private profile still shows its status (online, away…), never its game.
 
 ## Configuration
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+In Gladys, **Integrations**, **Steam**, **Configuration**:
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+| Field                         | Content                                                                                                                                                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Steam API key                 | The key copied from steamcommunity.com/dev/apikey. Stored in the Gladys configuration, never written to the logs.                                                                                                                           |
+| Accounts to follow            | Up to 20, separated by commas: a SteamID64 (`76561198…`, shown on store.steampowered.com/account), a profile URL (`https://steamcommunity.com/id/name/` or `/profiles/7656…`), a custom URL name, or the `STEAM_0:1:…` and `[U:1:…]` forms. |
+| Refresh interval              | 30 seconds, 1, 2 or 5 minutes (1 minute by default).                                                                                                                                                                                        |
+| Language of the feature names | English, French (default), German or Spanish: the names of the features at creation, and the texts sent to the scenes.                                                                                                                      |
 
-## Actions
+Then open the **Discovery** tab and add the accounts you want as devices. The **Check the accounts** button, below the configuration, resolves every entry and says whether its profile is public.
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+## Devices
 
-## Scenes
+One device per account, named "Steam" followed by the Steam name. All features are read-only.
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+| Feature            | Type               | Content                                                                                           |
+| ------------------ | ------------------ | ------------------------------------------------------------------------------------------------- |
+| Status             | Text               | Offline, Online, Busy, Away, Snooze, Looking to trade, Looking to play.                           |
+| Online             | Binary             | 1 when the account is not offline.                                                                |
+| In game            | Binary             | 1 while a game is running (public profiles only).                                                 |
+| Current game       | Text               | The name of the game, "None" otherwise.                                                           |
+| Gaming session     | Duration (minutes) | Length of the current session, 0 out of game. See "Playing for more than…" for what a session is. |
+| Playtime (2 weeks) | Duration (hours)   | Total playtime of the last two weeks, read every 30 minutes.                                      |
+| Steam level        | Counter            | The Steam level, read every 30 minutes.                                                           |
+| Last logoff        | Text               | Date and time of the last logoff, in the time zone of Gladys.                                     |
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+The binary and duration features can be used in the scene conditions of Gladys ("In game" equals 1, "Gaming session" above 60).
 
-## Dashboard
+## Widget
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+**Steam accounts**: two tiles (number of accounts in game, accounts online) and one line per account (ten at most): the game and the session length while playing, the status otherwise, with a color (green in game, blue online, orange busy or away, grey offline). A note names the private profiles. The widget shows the last refresh: it never calls Steam itself.
+
+## Scene triggers
+
+Each trigger can be narrowed to one account (empty: any account) and passes the account name to the scene actions.
+
+| Trigger                | When                                                                                                                                                                                                                                                                                   | Information passed on               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Starts playing         | A game starts, or the player switches to another one. Optional filter: the exact name of the game.                                                                                                                                                                                     | Account name, game, Steam app id    |
+| Stops playing          | A game ends, or the player switches to another one. Optional filter: the game.                                                                                                                                                                                                         | Account name, game, minutes played  |
+| Playing for more than… | The **gaming session** reaches the chosen duration (15, 30, 45 minutes, 1, 1.5, 2, 3 or 4 hours). A session is continuous play, whatever the game: switching games keeps it, a break under 10 minutes too. It fires once per session and per duration, even after a restart of Gladys. | Account name, game, minutes reached |
+| Comes online           | The account goes from offline to any other status.                                                                                                                                                                                                                                     | Account name, status                |
+
+The first refresh after a start of the integration only records the situation: it fires nothing.
+
+## Scene action
+
+**Read a Steam account** gives the following steps of the scene the status, online (yes/no), in game (yes/no), the current game and the session length of one account. It reads the last refresh, without calling Steam: combine it with "Only continue if" to act only when the account is playing.
+
+## Configuration action
+
+**Check the accounts** resolves each entry of the accounts field and answers, for each one, the Steam name and SteamID64 and whether the profile is public, or why the entry was not found.
+
+## Scene examples
+
+- **Bedtime**: every school day at 21:00, "Read a Steam account" on your child's account, "Only continue if" in game is true, then send "Time to stop [game]" on the family speaker.
+- **Screen time**: trigger "Playing for more than… 2 hours" on your child's account, then send yourself a message "Léo has been playing for 2 hours ([game])" and dim the lights of the room.
+- **Game evening**: trigger "Starts playing" on your account, then switch the living room to the "Gaming" scene and silence the notifications.
+
+## Refresh and Steam quotas
+
+The integration refreshes by itself at the chosen interval (it does not depend on the polling of Gladys). One request reads every account at once; the level and the playtime are read every 30 minutes, only for the accounts added to Gladys. With the default interval and three accounts added, that is about 1,700 requests a day, far from the **100,000 calls per day** allowed by the [Steam Web API Terms of Use](https://steamcommunity.com/dev/apiterms). If Steam answers "too many requests" (HTTP 429), the integration pauses for 5 minutes. Steam itself updates the status with a delay of up to a few minutes.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"Steam refused the API key"** in the Configuration screen: copy the key again from steamcommunity.com/dev/apikey (32 characters, no space).
+- **No game shown while someone plays**: the profile, or its game details, are not public. "Check the accounts" says it, and so does the widget.
+- **An account is missing from the Discovery tab**: check its spelling with "Check the accounts"; a custom URL name is the one after `/id/` in the profile URL, not the display name.
+- **Steam does not answer**: the integration keeps the last known states and tries again at every interval; the Configuration screen says so.
+- **More details**: set the `LOG_LEVEL=debug` environment variable on the container. The normal logs only hold starts, errors and recoveries.
+
+## Limits
+
+- Read-only: no message, no friend, no purchase, nothing changes on Steam.
+- The current game and the playtime need a public profile with public game details: Steam hides them otherwise, even from the account owner's own key.
+- Steam's own status can lag by a few minutes, and an "invisible" account looks offline.
+- A game launched outside Steam is not seen; a non-Steam game added to the library may show with its name only.
+- 20 accounts at most; the widget lists the first ten.
+- Developed without a real Steam account at hand: feedback welcome on the Gladys forum.
