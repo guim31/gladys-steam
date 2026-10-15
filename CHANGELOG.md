@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-15
+
 ### Added
 
 - One Gladys device per followed Steam account (up to 20, entered as SteamID64,
@@ -28,4 +30,5 @@ the notes of the version's GitHub Release.
 - Feature names and texts in English, French, German and Spanish, and the user
   documentation in the four languages.
 
-[Unreleased]: https://github.com/guim31/gladys-steam/commits/main
+[Unreleased]: https://github.com/guim31/gladys-steam/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/guim31/gladys-steam/releases/tag/v1.0.1
