@@ -1,0 +1,56 @@
+{
+  "response": {
+    "players": [
+      {
+        "steamid": "76561198000000001",
+        "communityvisibilitystate": 3,
+        "profilestate": 1,
+        "personaname": "testaccount1",
+        "profileurl": "https://steamcommunity.com/id/testaccount1/",
+        "avatar": "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb.jpg",
+        "avatarmedium": "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_medium.jpg",
+        "avatarfull": "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg",
+        "avatarhash": "fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb",
+        "lastlogoff": 1775409487,
+        "personastate": 1,
+        "primaryclanid": "1234567890123456",
+        "timecreated": 1273953511,
+        "realname": "John Dough",
+        "personastateflags": 0,
+        "gameextrainfo": "The Witcher: Enhanced Edition",
+        "gameid": "20900",
+        "lobbysteamid": "109775243377594361",
+        "gameserverip": "0.0.0.0:12345"
+      },
+      {
+        "steamid": "76561198000000002",
+        "communityvisibilitystate": 1,
+        "profilestate": 1,
+        "personaname": "testaccount2",
+        "profileurl": "https://steamcommunity.com/profiles/76561198000000002/",
+        "avatar": "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb.jpg",
+        "avatarmedium": "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_medium.jpg",
+        "avatarfull": "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg",
+        "avatarhash": "fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb",
+        "lastlogoff": 1775409487,
+        "personastate": 2,
+        "personastateflags": 0
+      },
+      {
+        "steamid": "76561198000000003",
+        "communityvisibilitystate": 3,
+        "profilestate": 1,
+        "personaname": "unconfigured_account",
+        "profileurl": "https://steamcommunity.com/profiles/76561198000000003/",
+        "avatar": "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb.jpg",
+        "avatarmedium": "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_medium.jpg",
+        "avatarfull": "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg",
+        "avatarhash": "fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb",
+        "personastate": 0,
+        "primaryclanid": "1234567890123456",
+        "timecreated": 1786993711,
+        "personastateflags": 0
+      }
+    ]
+  }
+}

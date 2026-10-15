@@ -1,177 +1,686 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Steam",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Status of chosen Steam accounts: online, current game, playtime, parental control scenes.",
+    "fr": "Statut de comptes Steam choisis : en ligne, jeu en cours, temps de jeu, scènes de contrôle parental.",
+    "de": "Status ausgewählter Steam-Konten: online, aktuelles Spiel, Spielzeit, Jugendschutz-Szenen.",
+    "es": "Estado de cuentas de Steam: en línea, juego actual, tiempo de juego, escenas de control parental."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-steam:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-steam/main/cover.png",
+  "categories": ["multimedia"],
+  "transports": ["cloud"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your Steam API key",
+        "fr": "Votre clé d'API Steam",
+        "de": "Dein Steam-API-Schlüssel",
+        "es": "Su clave de API de Steam"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Get a free key on the Steam developer page (a Steam account with a purchase is needed). The current game is only visible on public profiles whose game details are public.",
+        "fr": "Obtenez une clé gratuite sur la page développeur de Steam (il faut un compte Steam avec un achat). Le jeu en cours n'est visible que sur les profils publics dont les détails de jeu sont publics.",
+        "de": "Hol dir einen kostenlosen Schlüssel auf der Steam-Entwicklerseite (ein Steam-Konto mit einem Kauf ist nötig). Das aktuelle Spiel ist nur bei öffentlichen Profilen mit öffentlichen Spieldetails sichtbar.",
+        "es": "Obtenga una clave gratuita en la página de desarrolladores de Steam (se necesita una cuenta de Steam con una compra). El juego actual solo se ve en perfiles públicos con los detalles de juego públicos."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://steamcommunity.com/dev/apikey",
+          "label": {
+            "en": "Get a Steam API key",
+            "fr": "Obtenir une clé d'API Steam",
+            "de": "Steam-API-Schlüssel holen",
+            "es": "Obtener una clave de API de Steam"
+          }
+        },
+        {
+          "url": "https://store.steampowered.com/account/",
+          "label": {
+            "en": "Your SteamID (account page)",
+            "fr": "Votre SteamID (page du compte)",
+            "de": "Deine SteamID (Kontoseite)",
+            "es": "Su SteamID (página de la cuenta)"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "api_key",
+      "type": "secret",
+      "label": {
+        "en": "Steam API key",
+        "fr": "Clé d'API Steam",
+        "de": "Steam-API-Schlüssel",
+        "es": "Clave de API de Steam"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "description": {
+        "en": "32 characters, shown on steamcommunity.com/dev/apikey.",
+        "fr": "32 caractères, affichée sur steamcommunity.com/dev/apikey.",
+        "de": "32 Zeichen, angezeigt auf steamcommunity.com/dev/apikey.",
+        "es": "32 caracteres, mostrada en steamcommunity.com/dev/apikey."
+      },
+      "required": true
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+      "key": "accounts",
+      "type": "string",
+      "label": {
+        "en": "Accounts to follow",
+        "fr": "Comptes à suivre",
+        "de": "Zu verfolgende Konten",
+        "es": "Cuentas a seguir"
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "description": {
+        "en": "Up to 20, separated by commas: SteamID64, profile URL or custom URL name.",
+        "fr": "Jusqu'à 20, séparés par des virgules : SteamID64, URL de profil ou identifiant personnalisé.",
+        "de": "Bis zu 20, durch Kommas getrennt: SteamID64, Profil-URL oder eigener URL-Name.",
+        "es": "Hasta 20, separadas por comas: SteamID64, URL del perfil o nombre de URL personalizado."
+      },
+      "placeholder": {
+        "en": "e.g. 76561198000000000, my_custom_name",
+        "fr": "ex. 76561198000000000, my_custom_name",
+        "de": "z. B. 76561198000000000, my_custom_name",
+        "es": "p. ej. 76561198000000000, my_custom_name"
+      },
+      "required": true
     },
     {
-      "key": "unit",
+      "key": "refresh_interval",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Intervalle de rafraîchissement",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
+      "description": {
+        "en": "How often Steam is asked for the status of the accounts.",
+        "fr": "Fréquence à laquelle Steam est interrogé sur le statut des comptes.",
+        "de": "Wie oft Steam nach dem Status der Konten gefragt wird.",
+        "es": "Con qué frecuencia se consulta a Steam el estado de las cuentas."
+      },
       "required": false,
-      "default": "celsius",
+      "default": "60",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "30",
+          "label": {
+            "en": "30 seconds",
+            "fr": "30 secondes",
+            "de": "30 Sekunden",
+            "es": "30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 minutes",
+            "fr": "2 minutes",
+            "de": "2 Minuten",
+            "es": "2 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the feature names",
+        "fr": "Langue des noms de fonctionnalités",
+        "de": "Sprache der Funktionsnamen",
+        "es": "Idioma de los nombres de funciones"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Also used for the texts sent to scenes (status, no game).",
+        "fr": "Sert aussi aux textes envoyés aux scènes (statut, aucun jeu).",
+        "de": "Gilt auch für die Texte an die Szenen (Status, kein Spiel).",
+        "es": "También se usa para los textos enviados a las escenas (estado, ningún juego)."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
+      "key": "check_accounts",
+      "label": {
+        "en": "Check the accounts",
+        "fr": "Vérifier les comptes",
+        "de": "Konten prüfen",
+        "es": "Comprobar las cuentas"
+      },
+      "description": {
+        "en": "Resolves every account entered and tells whether its profile is public.",
+        "fr": "Résout chaque compte saisi et indique si son profil est public.",
+        "de": "Löst jedes eingegebene Konto auf und zeigt, ob sein Profil öffentlich ist.",
+        "es": "Resuelve cada cuenta introducida e indica si su perfil es público."
+      },
+      "timeout_seconds": 60
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "game_started",
+      "label": {
+        "en": "Starts playing",
+        "fr": "Commence à jouer",
+        "de": "Beginnt zu spielen",
+        "es": "Empieza a jugar"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "A followed account launches a game, or switches to another one.",
+        "fr": "Un compte suivi lance un jeu, ou passe à un autre.",
+        "de": "Ein verfolgtes Konto startet ein Spiel oder wechselt zu einem anderen.",
+        "es": "Una cuenta seguida inicia un juego o cambia a otro."
       },
       "fields": [
         {
-          "key": "device",
+          "key": "account",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "label": {
+            "en": "Steam account",
+            "fr": "Compte Steam",
+            "de": "Steam-Konto",
+            "es": "Cuenta de Steam"
+          }
         },
         {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
+          "key": "game",
+          "type": "string",
+          "label": {
+            "en": "Game (exact name, optional)",
+            "fr": "Jeu (nom exact, facultatif)",
+            "de": "Spiel (genauer Name, optional)",
+            "es": "Juego (nombre exacto, opcional)"
+          },
+          "placeholder": {
+            "en": "e.g. Portal 2",
+            "fr": "ex. Portal 2",
+            "de": "z. B. Portal 2",
+            "es": "p. ej. Portal 2"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "account_name",
+          "type": "string",
+          "label": {
+            "en": "Account name",
+            "fr": "Nom du compte",
+            "de": "Kontoname",
+            "es": "Nombre de la cuenta"
+          }
+        },
+        {
+          "key": "game",
+          "type": "string",
+          "label": {
+            "en": "Game",
+            "fr": "Jeu",
+            "de": "Spiel",
+            "es": "Juego"
+          }
+        },
+        {
+          "key": "game_id",
+          "type": "string",
+          "label": {
+            "en": "Steam app id",
+            "fr": "Identifiant d'application Steam",
+            "de": "Steam-App-ID",
+            "es": "ID de aplicación de Steam"
+          }
+        }
+      ]
+    },
+    {
+      "key": "game_stopped",
+      "label": {
+        "en": "Stops playing",
+        "fr": "Arrête de jouer",
+        "de": "Hört auf zu spielen",
+        "es": "Deja de jugar"
+      },
+      "description": {
+        "en": "A followed account leaves a game (or switches to another one).",
+        "fr": "Un compte suivi quitte un jeu (ou passe à un autre).",
+        "de": "Ein verfolgtes Konto verlässt ein Spiel (oder wechselt zu einem anderen).",
+        "es": "Una cuenta seguida sale de un juego (o cambia a otro)."
+      },
+      "fields": [
+        {
+          "key": "account",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Steam account",
+            "fr": "Compte Steam",
+            "de": "Steam-Konto",
+            "es": "Cuenta de Steam"
+          }
+        },
+        {
+          "key": "game",
+          "type": "string",
+          "label": {
+            "en": "Game (exact name, optional)",
+            "fr": "Jeu (nom exact, facultatif)",
+            "de": "Spiel (genauer Name, optional)",
+            "es": "Juego (nombre exacto, opcional)"
+          },
+          "placeholder": {
+            "en": "e.g. Portal 2",
+            "fr": "ex. Portal 2",
+            "de": "z. B. Portal 2",
+            "es": "p. ej. Portal 2"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "account_name",
+          "type": "string",
+          "label": {
+            "en": "Account name",
+            "fr": "Nom du compte",
+            "de": "Kontoname",
+            "es": "Nombre de la cuenta"
+          }
+        },
+        {
+          "key": "game",
+          "type": "string",
+          "label": {
+            "en": "Game",
+            "fr": "Jeu",
+            "de": "Spiel",
+            "es": "Juego"
+          }
+        },
+        {
+          "key": "minutes",
+          "type": "number",
+          "label": {
+            "en": "Minutes played",
+            "fr": "Minutes jouées",
+            "de": "Gespielte Minuten",
+            "es": "Minutos jugados"
+          }
+        }
+      ]
+    },
+    {
+      "key": "playing_for",
+      "label": {
+        "en": "Playing for more than…",
+        "fr": "Joue depuis plus de…",
+        "de": "Spielt seit mehr als…",
+        "es": "Juega desde hace más de…"
+      },
+      "description": {
+        "en": "The gaming session of an account reaches the chosen duration. Fires once per session; a break under 10 minutes does not end it.",
+        "fr": "La session de jeu d'un compte atteint la durée choisie. Une seule fois par session ; une pause de moins de 10 minutes ne l'interrompt pas.",
+        "de": "Die Spielsitzung eines Kontos erreicht die gewählte Dauer. Einmal pro Sitzung; eine Pause unter 10 Minuten beendet sie nicht.",
+        "es": "La sesión de juego de una cuenta alcanza la duración elegida. Una vez por sesión; una pausa de menos de 10 minutos no la termina."
+      },
+      "fields": [
+        {
+          "key": "account",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Steam account",
+            "fr": "Compte Steam",
+            "de": "Steam-Konto",
+            "es": "Cuenta de Steam"
+          }
+        },
+        {
+          "key": "minutes",
+          "type": "select",
+          "required": true,
+          "label": {
+            "en": "Duration",
+            "fr": "Durée",
+            "de": "Dauer",
+            "es": "Duración"
+          },
           "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
+            {
+              "value": "15",
+              "label": {
+                "en": "15 minutes",
+                "fr": "15 minutes",
+                "de": "15 Minuten",
+                "es": "15 minutos"
+              }
+            },
+            {
+              "value": "30",
+              "label": {
+                "en": "30 minutes",
+                "fr": "30 minutes",
+                "de": "30 Minuten",
+                "es": "30 minutos"
+              }
+            },
+            {
+              "value": "45",
+              "label": {
+                "en": "45 minutes",
+                "fr": "45 minutes",
+                "de": "45 Minuten",
+                "es": "45 minutos"
+              }
+            },
+            {
+              "value": "60",
+              "label": {
+                "en": "1 hour",
+                "fr": "1 heure",
+                "de": "1 Stunde",
+                "es": "1 hora"
+              }
+            },
+            {
+              "value": "90",
+              "label": {
+                "en": "1.5 hours",
+                "fr": "1,5 heures",
+                "de": "1,5 Stunden",
+                "es": "1,5 horas"
+              }
+            },
+            {
+              "value": "120",
+              "label": {
+                "en": "2 hours",
+                "fr": "2 heures",
+                "de": "2 Stunden",
+                "es": "2 horas"
+              }
+            },
+            {
+              "value": "180",
+              "label": {
+                "en": "3 hours",
+                "fr": "3 heures",
+                "de": "3 Stunden",
+                "es": "3 horas"
+              }
+            },
+            {
+              "value": "240",
+              "label": {
+                "en": "4 hours",
+                "fr": "4 heures",
+                "de": "4 Stunden",
+                "es": "4 horas"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "account_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Account name",
+            "fr": "Nom du compte",
+            "de": "Kontoname",
+            "es": "Nombre de la cuenta"
+          }
+        },
+        {
+          "key": "game",
+          "type": "string",
+          "label": {
+            "en": "Game",
+            "fr": "Jeu",
+            "de": "Spiel",
+            "es": "Juego"
+          }
+        },
+        {
+          "key": "minutes",
+          "type": "number",
+          "label": {
+            "en": "Minutes reached",
+            "fr": "Minutes atteintes",
+            "de": "Erreichte Minuten",
+            "es": "Minutos alcanzados"
+          }
+        }
+      ]
+    },
+    {
+      "key": "went_online",
+      "label": {
+        "en": "Comes online",
+        "fr": "Se connecte",
+        "de": "Geht online",
+        "es": "Se conecta"
+      },
+      "description": {
+        "en": "A followed account goes from offline to online, busy or away.",
+        "fr": "Un compte suivi passe de hors ligne à en ligne, occupé ou absent.",
+        "de": "Ein verfolgtes Konto wechselt von offline zu online, beschäftigt oder abwesend.",
+        "es": "Una cuenta seguida pasa de desconectada a en línea, ocupada o ausente."
+      },
+      "fields": [
+        {
+          "key": "account",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Steam account",
+            "fr": "Compte Steam",
+            "de": "Steam-Konto",
+            "es": "Cuenta de Steam"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "account_name",
+          "type": "string",
+          "label": {
+            "en": "Account name",
+            "fr": "Nom du compte",
+            "de": "Kontoname",
+            "es": "Nombre de la cuenta"
+          }
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "label": {
+            "en": "Status",
+            "fr": "Statut",
+            "de": "Status",
+            "es": "Estado"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "get_account_status",
+      "label": {
+        "en": "Read a Steam account",
+        "fr": "Lire un compte Steam",
+        "de": "Steam-Konto lesen",
+        "es": "Leer una cuenta de Steam"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Gives the status, the current game and the session length to the next steps of the scene.",
+        "fr": "Donne le statut, le jeu en cours et la durée de session aux étapes suivantes de la scène.",
+        "de": "Gibt Status, aktuelles Spiel und Sitzungsdauer an die nächsten Schritte der Szene weiter.",
+        "es": "Pasa el estado, el juego actual y la duración de la sesión a los pasos siguientes de la escena."
+      },
+      "timeout_seconds": 10,
       "fields": [
         {
-          "key": "device",
+          "key": "account",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
+          "label": {
+            "en": "Steam account",
+            "fr": "Compte Steam",
+            "de": "Steam-Konto",
+            "es": "Cuenta de Steam"
+          },
           "required": true
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
+          "key": "account_name",
+          "type": "string",
+          "label": {
+            "en": "Account name",
+            "fr": "Nom du compte",
+            "de": "Kontoname",
+            "es": "Nombre de la cuenta"
+          }
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "label": {
+            "en": "Status",
+            "fr": "Statut",
+            "de": "Status",
+            "es": "Estado"
+          }
+        },
+        {
+          "key": "online",
           "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "label": {
+            "en": "Online",
+            "fr": "En ligne",
+            "de": "Online",
+            "es": "En línea"
+          }
+        },
+        {
+          "key": "in_game",
+          "type": "boolean",
+          "label": {
+            "en": "In game",
+            "fr": "En jeu",
+            "de": "Im Spiel",
+            "es": "Jugando"
+          }
+        },
+        {
+          "key": "game",
+          "type": "string",
+          "label": {
+            "en": "Current game",
+            "fr": "Jeu en cours",
+            "de": "Aktuelles Spiel",
+            "es": "Juego actual"
+          }
+        },
+        {
+          "key": "session_minutes",
+          "type": "number",
+          "label": {
+            "en": "Session minutes",
+            "fr": "Minutes de session",
+            "de": "Sitzungsminuten",
+            "es": "Minutos de sesión"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "accounts",
+      "label": {
+        "en": "Steam accounts",
+        "fr": "Comptes Steam",
+        "de": "Steam-Konten",
+        "es": "Cuentas de Steam"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Who is online, who plays what and for how long.",
+        "fr": "Qui est en ligne, qui joue à quoi et depuis combien de temps.",
+        "de": "Wer online ist, wer was spielt und wie lange.",
+        "es": "Quién está en línea, quién juega a qué y desde cuándo."
+      },
+      "icon": "play"
     }
   ]
 }

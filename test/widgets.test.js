@@ -1,77 +1,111 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateWidgetContent } from '@gladysassistant/integration-sdk';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { buildDiscoveredDevices } from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { DEMO_STATUS_WIDGET, WIDGETS, refreshWidgets } from '../src/widgets.js';
-import { normalizeConfig } from '../src/config.js';
+import { buildAccountsContent, formatMinutes } from '../src/widgets.js';
+import { createWorld } from './helpers/world.js';
+import { ID1, ID2 } from './helpers/fakeSteam.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
-const demoStatus = WIDGETS[DEMO_STATUS_WIDGET];
+const LANGS = ['en', 'fr', 'de', 'es'];
 
-// What the SDK passes to onWidgetGet, plus the config index.js adds.
-const getContent = (cfg = config) =>
-  demoStatus.get(gladys, { settings: {}, language: 'en', units: 'metric', config: cfg });
+function account(i, changes = {}) {
+  return {
+    steamid: `7656119800000${String(i).padStart(4, '0')}`,
+    sessionMinutes: 0,
+    snapshot: {
+      steamid: `7656119800000${String(i).padStart(4, '0')}`,
+      name: `player${i}`,
+      personastate: 1,
+      online: true,
+      gameId: null,
+      gameName: null,
+      public: true,
+      lastLogoff: null,
+      ...changes,
+    },
+  };
+}
 
-test('the demo_status content is rendered exactly as sent', async () => {
-  // [] = nothing the core would drop, truncate or trim to the content budget.
-  assert.deepEqual(validateWidgetContent(await getContent()), []);
+test('the widget content fits the core vocabulary and budget, in every case and language', () => {
+  const cases = [
+    { configured: false, accounts: [] },
+    { configured: true, accounts: [{ steamid: '1', sessionMinutes: 0 }] },
+    { configured: true, accounts: [{ steamid: '1', sessionMinutes: 0 }], steamDown: true },
+    {
+      configured: true,
+      accounts: [
+        account(1, { gameId: '1', gameName: 'A game with a very very very long name, really' }),
+        account(2, { personastate: 3 }),
+        account(3, { personastate: 0, online: false, public: false }),
+      ],
+    },
+    {
+      configured: true,
+      steamDown: true,
+      accounts: Array.from({ length: 14 }, (_, i) =>
+        account(i, { public: i % 2 === 0, personastate: i % 7 }),
+      ),
+    },
+  ];
+  for (const input of cases) {
+    for (const language of LANGS) {
+      const content = buildAccountsContent({
+        steamDown: false,
+        ttlSeconds: 60,
+        language,
+        ...input,
+      });
+      assert.deepEqual(validateWidgetContent(content), [], JSON.stringify({ input, language }));
+      assert.ok(content.components.length <= 8);
+      assert.ok(content.components.filter((c) => c.type === 'text').length <= 2);
+    }
+  }
 });
 
-test('the degraded plug connection content is valid too', async () => {
-  simulateLanSession(false);
+test('a row shows the game and the session, cutting the name, never the duration', () => {
+  const content = buildAccountsContent({
+    configured: true,
+    steamDown: false,
+    ttlSeconds: 60,
+    language: 'fr',
+    accounts: [
+      {
+        ...account(1, { gameId: '1', gameName: 'A game with a very very very long name, really' }),
+        sessionMinutes: 125,
+      },
+      account(2, { personastate: 2 }),
+    ],
+  });
+  const status = content.components.find((c) => c.type === 'status');
+  assert.match(status.items[0].value, /^A game with a very .*… · 2 h 05$/);
+  assert.equal(status.items[0].value.length, 40);
+  assert.equal(status.items[0].color, 'success');
+  assert.deepEqual(status.items[1], {
+    label: 'player2',
+    value: 'Occupé',
+    icon: 'moon',
+    color: 'warning',
+  });
+  assert.equal(formatMinutes(45, 'de'), '45 Min.');
+});
+
+test('the widget served by the integration lists the accounts and names the private ones', async () => {
+  const world = await createWorld();
   try {
-    const content = await getContent();
-    assert.deepEqual(validateWidgetContent(content), []);
-    const status = content.components.find((component) => component.type === 'status');
-    assert.ok(
-      status.items.some((item) => item.color === 'warning'),
-      'degraded shows a warning',
+    const ack = await world.gladys.fake.widgetGet('accounts', { language: 'es' });
+    const { components } = ack.data.content;
+    assert.deepEqual(validateWidgetContent(ack.data.content), []);
+    const status = components.find((c) => c.type === 'status');
+    assert.deepEqual(
+      status.items.map((item) => [item.label, item.value]),
+      [
+        ['testaccount1', 'The Witcher: Enhanced Edition'],
+        ['testaccount2', 'Ocupado'],
+        ['unconfigured_account', 'Desconectado'],
+      ],
     );
+    assert.match(components.find((c) => c.type === 'text').text, /Perfil privado.*testaccount2/);
+    assert.ok(ID1 && ID2);
   } finally {
-    simulateLanSession(true);
+    await world.cleanup();
   }
-});
-
-test('the live tiles reference features the integration publishes', async () => {
-  const featureIds = new Set(
-    buildDiscoveredDevices(gladys, config).flatMap((device) =>
-      device.features.map((feature) => feature.external_id),
-    ),
-  );
-  const liveTiles = (await getContent()).components.filter((c) => c.device_feature);
-  assert.ok(liveTiles.length > 0, 'the template demonstrates a device-bound tile');
-  for (const tile of liveTiles) {
-    assert.ok(featureIds.has(tile.device_feature), `unknown feature ${tile.device_feature}`);
-  }
-});
-
-test('every button action of the content is handled and answers a short toast', async () => {
-  const buttons = (await getContent()).components.filter((c) => c.type === 'button' && c.action);
-  assert.ok(buttons.length > 0, 'the template demonstrates a widget action');
-  for (const { action } of buttons) {
-    const message = await demoStatus.action(gladys, {
-      actionKey: action.key,
-      params: action.params ?? {},
-      settings: {},
-      config,
-    });
-    assert.ok(message.en, 'the toast carries at least the mandatory `en` text');
-    assert.ok(message.en.length <= 200, 'toasts are capped at 200 characters');
-  }
-});
-
-test('an unknown widget action fails, so the user sees the error', async () => {
-  await assert.rejects(
-    demoStatus.action(gladys, { actionKey: 'unknown', params: {}, settings: {}, config }),
-    /Unknown widget action/,
-  );
-});
-
-test('refreshWidgets nudges every widget', () => {
-  const fresh = createFakeGladys();
-  refreshWidgets(fresh);
-  assert.deepEqual(fresh.fake.widgetRefreshes, Object.keys(WIDGETS));
 });
